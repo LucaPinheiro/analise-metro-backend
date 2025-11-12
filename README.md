@@ -1,10 +1,12 @@
 # 🚇 Metrô SP - Backend Pipeline de Processamento
 
-Backend para gerenciamento de pipeline de processamento de imagens e comparação BIM para monitoramento de canteiros de obras do Metrô de São Paulo.
+Backend para gerenciamento de pipeline de processamento de imagens e comparação
+BIM para monitoramento de canteiros de obras do Metrô de São Paulo.
 
 ## 🚀 Início Rápido
 
 ### Pré-requisitos
+
 - Node.js 20.x ou superior
 - npm ou yarn
 
@@ -18,6 +20,13 @@ npm install
 cp .env.example .env
 
 # Editar .env com suas configurações
+```
+
+### Iniciar o Prisma
+```bash
+npx prisma init
+npx prisma migrate dev --name init
+npx prisma generate
 ```
 
 ### Executar em Desenvolvimento
@@ -35,78 +44,94 @@ npm run build
 npm start
 ```
 
+# 📡 Endpoints da API (Fluxo de Trabalho)
+
+### A API agora é RESTful e segue um fluxo lógico:
+
+1. Crie um Projeto (enviando o BIM).
+
+2. Adicione Registros (fotos) a esse projeto.
+
+3. Inicie uma Análise para comparar o BIM e um registro.
+
 ## 📡 Endpoints da API
 
 ### Health Check
+
 ```bash
 GET /health
 ```
 
-### Processar Fotos
+### Projetos
+
 ```bash
-POST /api/processar-fotos
+POST /api/projects
 Content-Type: multipart/form-data
+  - modeloBim: O arquivo (.ifc, .dwg, .obj) de até 5GB.
+  - name: Nome do projeto (ex: "Estação Morumbi - Bloco A").
+  - description: Descrição (opcional).
 
 Body:
 - fotos: arquivo(s) de imagem
 - modeloBim: caminho para modelo BIM (opcional)
 - parametros: JSON string com parâmetros (opcional)
+
+curl -X POST http://localhost:3000/api/projects \
+  -F "name=Projeto Estação Morumbi" \
+  -F "description=Bloco A da estação" \
+  -F "modeloBim=@./meus_modelos/projeto_final.ifc"
+
+GET /api/projects
+  - Lista todos os projetos.
+
+GET /api/projects/:id
+  - Obtém detalhes de um projeto específico.
 ```
 
-**Exemplo com cURL:**
+### Registro
+
 ```bash
-curl -X POST http://localhost:3000/api/processar-fotos \
-  -F "fotos=@foto1.jpg" \
-  -F "fotos=@foto2.jpg" \
-  -F "modeloBim=./modelos/projeto.ifc" \
-  -F 'parametros={"threshold": 0.8, "outputFormat": "json"}'
+POST /api/projects/:id/records
+  - Adiciona um novo registro de fotos a um projeto existente.
+Content-Type: multipart/form-data
+  - fotos: Array de arquivos de imagem (ex: fotos=@foto1.jpg, fotos=@foto2.jpg).
+  - name: Nome do registro (ex: "Semana 5 - Fachada Leste").
+
+curl -X POST http://localhost:3000/api/projects/1/records \
+  -F "name=Semana 5 - Fachada Leste" \
+  -F "fotos=@./fotos/img_001.jpg" \
+  -F "fotos=@./fotos/img_002.jpg"
+
+GET /api/projects/:id/records
+  - Lista todos os registros de fotos de um projeto específico.
 ```
 
-**Resposta:**
-```json
-{
-  "jobId": "uuid-do-job",
-  "status": "processing",
-  "message": "Processamento iniciado",
-  "fotosRecebidas": 2,
-  "timestamp": "2025-01-XX..."
-}
-```
+### Análises (Jobs)
 
-### Consultar Status do Job
 ```bash
-GET /api/jobs/:jobId
-```
+POST /api/analyses
+  - Inicia uma nova análise (job), comparando um projectId com um recordId.
+Content-Type: application/json
+  - projectId: ID do projeto (BIM)
+  - recordId: ID do registro (Fotos)
+  - parametros: JSON com parâmetros (opcional, ex: {"threshold": 0.8})
 
-**Resposta:**
-```json
-{
-  "jobId": "uuid-do-job",
-  "status": "processing",
-  "progress": 65,
-  "logs": [
-    "🚀 Iniciando processamento...",
-    "📸 Etapa 1/3: Processando imagens...",
-    "🏗️ Etapa 2/3: Comparando com modelo BIM..."
-  ],
-  "outputPaths": {
-    "imagensProcessadas": ["path1", "path2"],
-    "comparacaoBim": "path/to/comparacao.json",
-    "relatorio": "path/to/relatorio.json"
-  },
-  "createdAt": "2025-01-XX...",
-  "updatedAt": "2025-01-XX..."
-}
-```
+curl -X POST http://localhost:3000/api/analyses \
+  -H "Content-Type: application/json" \
+  -d '{
+        "projectId": 1,
+        "recordId": 1,
+        "parametros": {"threshold": 0.9}
+      }'
 
-### Listar Todos os Jobs
-```bash
-GET /api/jobs
-```
+GET /api/analyses/:id
+  - Consulta o status de uma análise (job). O jobId retornado acima é o id da análise.
 
-### Cancelar Job
-```bash
-DELETE /api/jobs/:jobId
+GET /api/analyses
+  - Lista todas as análises do sistema.
+
+DELETE /api/analyses/:id
+Cancela uma análise em execução.
 ```
 
 ## 🔧 Configuração
@@ -123,22 +148,10 @@ Edite o arquivo `.env` para configurar:
 
 Consulte `TECH.md` para detalhes sobre as tecnologias utilizadas.
 
-## 🏗️ Estrutura do Projeto
-
-```
-src/
-├── index.ts                    # Servidor principal
-├── routes/
-│   └── pipeline.routes.ts      # Rotas da API
-├── controllers/
-│   └── pipeline.controller.ts  # Controllers
-└── services/
-    └── pipeline.manager.ts     # Gerenciamento de jobs e CLIs
-```
-
 ## 🔌 Integração com Ferramentas CLI
 
-O backend executa ferramentas CLI externas para processamento. Configure os caminhos no `.env`:
+O backend executa ferramentas CLI externas para processamento. Configure os
+caminhos no `.env`:
 
 ```bash
 IMAGE_PROCESSING_CLI=./tools/image-processor
@@ -146,4 +159,3 @@ BIM_COMPARISON_CLI=./tools/bim-comparison
 ```
 
 As ferramentas devem seguir o padrão de argumentos descrito em `TECH.md`.
-

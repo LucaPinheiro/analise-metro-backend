@@ -1,11 +1,12 @@
 node_modules/
 dist/
 .env
-uploads/
-outputs/
 logs/
 *.log
 .DS_Store
 .vscode/
 .idea/
-
+docker/pgdata/
+src/shared/data/
+/src/generated/prisma
+prisma/migrations/
