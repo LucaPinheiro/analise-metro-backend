@@ -199,7 +199,9 @@ Edite o arquivo `.env` para configurar:
 
 ## 📚 Documentação
 
-Consulte `TECH.md` para detalhes sobre as tecnologias utilizadas.
+- `TECH.md` - Detalhes sobre as tecnologias utilizadas
+- `DOCS.md` - Documentação técnica completa da API
+- `TESTING.md` - Guia completo de testes da aplicação
 
 ## 🔌 Integração com Ferramentas CLI
 
