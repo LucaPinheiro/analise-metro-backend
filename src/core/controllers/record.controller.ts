@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import prisma from "@database/db";
 import path from "path";
 import moverArquivo from "@functions/moverArquivo";
+import { validarArquivosImagem } from "@functions/validarArquivo";
 
 export class RecordController {
     async adicionarRegistro(req: Request, res: Response): Promise<void> {
@@ -16,6 +17,13 @@ export class RecordController {
                 });
                 return;
             }
+
+            const validacao = validarArquivosImagem(files);
+            if (!validacao.valido) {
+                res.status(400).json({ error: validacao.erro });
+                return;
+            }
+
             if (!name) {
                 res.status(400).json({
                     error: 'O campo "name" é obrigatório.'
