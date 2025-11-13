@@ -2,6 +2,7 @@ import { Router } from "express";
 import { ProjectController } from "@controllers/project.controller";
 import { RecordController } from "@controllers/record.controller";
 import { AnalysisController } from "@controllers/analysis.controller";
+import { ConstructionController } from "@controllers/construction.controller";
 
 import multer from "multer";
 import path from "path";
@@ -12,6 +13,7 @@ const router = Router();
 const projectController = new ProjectController();
 const recordController = new RecordController();
 const analysisController = new AnalysisController();
+const constructionController = new ConstructionController();
 
 const uploadDir = process.env.UPLOADS_DIR || "./shared/data/uploads";
 if (!fs.existsSync(uploadDir)) {
@@ -82,6 +84,37 @@ router.get(
 router.delete(
     "/analyses/:id",
     analysisController.cancelarAnalysis.bind(analysisController)
+);
+
+// Novos endpoints conforme diagramas
+router.post(
+    "/construction",
+    upload.single("modeloBim"),
+    constructionController.criarConstruction.bind(constructionController)
+);
+router.get(
+    "/constructions",
+    constructionController.listarConstructions.bind(constructionController)
+);
+
+router.post(
+    "/:constructionId/photo-processing-full",
+    upload.array("fotos", 20),
+    constructionController.photoProcessingFull.bind(constructionController)
+);
+router.post(
+    "/:constructionId/analysis-full",
+    constructionController.analysisFull.bind(constructionController)
+);
+router.get(
+    "/:constructionId/analyses",
+    constructionController.listarAnalysesPorProjeto.bind(
+        constructionController
+    )
+);
+router.get(
+    "/:constructionId/:fileType/:fileId",
+    constructionController.getFile.bind(constructionController)
 );
 
 export { router as pipelineRouter };
