@@ -3,6 +3,7 @@ import prisma from "@database/db";
 import { Prisma } from "@prisma/client";
 import path from "path";
 import moverArquivo from "@functions/moverArquivo";
+import { validarArquivoBIM } from "@functions/validarArquivo";
 
 export class ProjectController {
     async criarProjeto(req: Request, res: Response): Promise<void> {
@@ -16,6 +17,13 @@ export class ProjectController {
                 });
                 return;
             }
+
+            const validacao = validarArquivoBIM(file);
+            if (!validacao.valido) {
+                res.status(400).json({ error: validacao.erro });
+                return;
+            }
+
             if (!name) {
                 res.status(400).json({
                     error: 'O campo "name" é obrigatório.'
