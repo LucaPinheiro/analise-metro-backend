@@ -48,10 +48,14 @@ npm start
 
 ### A API agora é RESTful e segue um fluxo lógico:
 
+**Fluxo Simplificado (Recomendado):**
+1. Crie um Projeto/Construction (enviando o BIM).
+2. Envie fotos com `photo-processing-full` (processa tudo automaticamente).
+3. Ou execute `analysis-full` para reanalisar usando modelos existentes.
+
+**Fluxo Tradicional (Compatível):**
 1. Crie um Projeto (enviando o BIM).
-
 2. Adicione Registros (fotos) a esse projeto.
-
 3. Inicie uma Análise para comparar o BIM e um registro.
 
 ## 📡 Endpoints da API
@@ -132,6 +136,55 @@ GET /api/analyses
 
 DELETE /api/analyses/:id
 Cancela uma análise em execução.
+```
+
+### Novos Endpoints (Conforme Diagramas)
+
+```bash
+# Criar projeto (alias)
+POST /api/construction
+Content-Type: multipart/form-data
+  - modeloBim: Arquivo BIM (.ifc, .dwg, .obj)
+  - name: Nome do projeto
+  - description: Descrição (opcional)
+
+# Listar projetos (alias)
+GET /api/constructions
+
+# Processamento completo (Upload fotos + 3DGS + C2C automático)
+POST /api/:constructionId/photo-processing-full
+Content-Type: multipart/form-data
+  - fotos: Array de arquivos de imagem (mínimo 3 fotos)
+  - name: Nome do registro
+  - parametros: JSON string com parâmetros (opcional)
+
+curl -X POST http://localhost:3000/api/1/photo-processing-full \
+  -F "name=Registro Semana 5" \
+  -F "fotos=@./fotos/img_001.jpg" \
+  -F "fotos=@./fotos/img_002.jpg" \
+  -F "fotos=@./fotos/img_003.jpg"
+
+# Análise usando modelos já armazenados (apenas C2C)
+POST /api/:constructionId/analysis-full
+Content-Type: application/json
+  - recordId: ID do registro específico (opcional, usa o mais recente se não fornecido)
+  - parametros: JSON com parâmetros (opcional)
+
+curl -X POST http://localhost:3000/api/1/analysis-full \
+  -H "Content-Type: application/json" \
+  -d '{"parametros": {"threshold": 0.9}}'
+
+# Listar análises de um projeto
+GET /api/:constructionId/analyses
+
+# Visualizar arquivo (BIM, registro ou análise)
+GET /api/:constructionId/:fileType/:fileId
+  - fileType: "bim", "registro" ou "analise"
+  - fileId: ID do registro ou análise (não necessário para BIM)
+
+curl http://localhost:3000/api/1/registro/1
+curl http://localhost:3000/api/1/analise/1
+curl http://localhost:3000/api/1/bim/0
 ```
 
 ## 🔧 Configuração
