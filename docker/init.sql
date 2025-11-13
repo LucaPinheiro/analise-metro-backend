@@ -26,7 +26,7 @@ CREATE TABLE analysis (
                           output_paths JSONB,
                           created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                           started_at TIMESTAMP WITH TIME ZONE,
-                          updated_at TIMESTAMP WITH TIME ZONE,
+                          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                           completed_at TIMESTAMP WITH TIME ZONE,
                           result_path TEXT,
                           summary_json_path TEXT,
