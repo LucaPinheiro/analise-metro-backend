@@ -19,3 +19,24 @@ export default function moverArquivo(
     fs.renameSync(file.path, caminhoFinal);
     return path.join(pastaDestino, nomeFinal);
 }
+
+export function criarDiretorioOutput(
+    constructionId: number,
+    tipo: "registros" | "analises"
+): string {
+    const pastaBase = process.env.OUTPUTS_DIR || "./src/shared/data/outputs";
+    const caminho = path.join(pastaBase, constructionId.toString(), tipo);
+    
+    if (!fs.existsSync(caminho)) {
+        fs.mkdirSync(caminho, { recursive: true });
+    }
+    
+    return caminho;
+}
+
+export function obterCaminhoRelativoOutput(
+    caminhoAbsoluto: string
+): string {
+    const pastaBase = process.env.OUTPUTS_DIR || "./src/shared/data/outputs";
+    return path.relative(pastaBase, caminhoAbsoluto);
+}
