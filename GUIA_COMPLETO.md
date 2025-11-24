@@ -747,6 +747,26 @@ Body:
 GET /api/analyses/:id
 ```
 
+Retorna status completo da análise.
+
+#### Relatório de Execução
+```
+GET /api/analyses/:id/report
+```
+
+Retorna relatório detalhado da execução da pipeline incluindo:
+- Informações da análise (status, progresso, duração)
+- Informações do projeto e registro relacionados
+- Etapas executadas e completadas
+- Métricas calculadas (mean_distance, std_deviation)
+- Arquivos gerados
+- Logs completos
+
+**Exemplo:**
+```bash
+curl http://localhost:3000/api/analyses/1/report | jq
+```
+
 #### Listar Análises
 ```
 GET /api/analyses
