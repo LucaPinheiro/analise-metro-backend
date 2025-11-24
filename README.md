@@ -257,10 +257,15 @@ BIM_COMPARISON_CLI=./tools/bim-comparison.sh
 ### Popular Banco com Dados Mock
 
 ```bash
+# Seed automático (múltiplos projetos)
 npm run seed
+
+# Criar projeto manualmente
+npm run create-project -- --name "Meu Projeto"
 ```
 
-Cria 5 projetos, múltiplos registros e análises com diferentes status para desenvolvimento e testes.
+- **Seed automático**: Cria 5 projetos, múltiplos registros e análises com diferentes status
+- **Criar projeto manual**: Permite criar projetos individuais com controle total
 
 ### Teste Rápido
 
