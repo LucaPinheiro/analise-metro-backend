@@ -262,10 +262,14 @@ npm run seed
 
 # Criar projeto manualmente
 npm run create-project -- --name "Meu Projeto"
+
+# Limpar banco e arquivos completamente
+npm run clear-db
 ```
 
 - **Seed automático**: Cria 5 projetos, múltiplos registros e análises com diferentes status
 - **Criar projeto manual**: Permite criar projetos individuais com controle total
+- **Limpar banco**: Remove todos os dados do banco e arquivos (uploads/outputs)
 
 ### Teste Rápido
 

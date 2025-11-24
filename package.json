@@ -12,7 +12,8 @@
         "format:fix": "prettier --write .",
         "seed": "tsx prisma/seed.ts",
         "seed:reset": "tsx prisma/seed.ts --reset",
-        "create-project": "tsx scripts/create-project-manual.ts"
+        "create-project": "tsx scripts/create-project-manual.ts",
+        "clear-db": "tsx scripts/clear-db.ts"
     },
     "prisma": {
         "seed": "tsx prisma/seed.ts"
