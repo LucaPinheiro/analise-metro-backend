@@ -90,7 +90,7 @@ ply
 format ascii 1.0
 comment Mock 3DGS reconstruction - Generated for MVP demonstration
 comment This file simulates a 3D point cloud reconstructed from images
-element vertex 50000
+element vertex 1000
 property float x
 property float y
 property float z
@@ -103,12 +103,15 @@ property float nz
 end_header
 PLYEOF
 
-# Gerar pontos mock (cubo com variação)
-for i in $(seq 1 50000); do
+# Gerar pontos mock (cubo com variação) - versão otimizada
+# Gerar menos pontos para ser mais rápido (1000 pontos é suficiente para mock)
+POINT_COUNT=1000
+for i in $(seq 1 $POINT_COUNT); do
     # Coordenadas simulando um objeto 3D (cubo com variação)
-    X=$(echo "scale=6; ($RANDOM / 32767.0 - 0.5) * 10" | bc 2>/dev/null || echo "0")
-    Y=$(echo "scale=6; ($RANDOM / 32767.0 - 0.5) * 10" | bc 2>/dev/null || echo "0")
-    Z=$(echo "scale=6; ($RANDOM / 32767.0 - 0.5) * 10" | bc 2>/dev/null || echo "0")
+    # Usar cálculo simples sem bc para ser mais rápido
+    X=$(awk "BEGIN {printf \"%.6f\", ($RANDOM / 32767.0 - 0.5) * 10}")
+    Y=$(awk "BEGIN {printf \"%.6f\", ($RANDOM / 32767.0 - 0.5) * 10}")
+    Z=$(awk "BEGIN {printf \"%.6f\", ($RANDOM / 32767.0 - 0.5) * 10}")
     
     # Cores simuladas (RGB)
     R=$((RANDOM % 256))
@@ -116,9 +119,9 @@ for i in $(seq 1 50000); do
     B=$((RANDOM % 256))
     
     # Normais simuladas
-    NX=$(echo "scale=6; ($RANDOM / 32767.0 - 0.5) * 2" | bc 2>/dev/null || echo "0")
-    NY=$(echo "scale=6; ($RANDOM / 32767.0 - 0.5) * 2" | bc 2>/dev/null || echo "0")
-    NZ=$(echo "scale=6; ($RANDOM / 32767.0 - 0.5) * 2" | bc 2>/dev/null || echo "0")
+    NX=$(awk "BEGIN {printf \"%.6f\", ($RANDOM / 32767.0 - 0.5) * 2}")
+    NY=$(awk "BEGIN {printf \"%.6f\", ($RANDOM / 32767.0 - 0.5) * 2}")
+    NZ=$(awk "BEGIN {printf \"%.6f\", ($RANDOM / 32767.0 - 0.5) * 2}")
     
     echo "$X $Y $Z $R $G $B $NX $NY $NZ" >> "$OUTPUT_PATH"
 done
@@ -127,7 +130,7 @@ FILE_SIZE=$(stat -f%z "$OUTPUT_PATH" 2>/dev/null || stat -c%s "$OUTPUT_PATH" 2>/
 FILE_SIZE_MB=$(echo "scale=2; $FILE_SIZE / 1048576" | bc 2>/dev/null || echo "0")
 
 echo "   ✓ Arquivo PLY gerado: $(basename "$OUTPUT_PATH")" >&2
-echo "   ✓ Tamanho: ${FILE_SIZE_MB} MB (~50.000 pontos)" >&2
+echo "   ✓ Tamanho: ${FILE_SIZE_MB} MB (~$POINT_COUNT pontos)" >&2
 echo "   ✓ Formato: PLY ASCII com cores e normais" >&2
 
 echo "" >&2
@@ -136,9 +139,9 @@ echo "  ✅ [MOCK 3DGS] Reconstrução 3D concluída com sucesso!" >&2
 echo "═══════════════════════════════════════════════════════════" >&2
 echo "" >&2
 echo "📊 Estatísticas da reconstrução:" >&2
-echo "   • Pontos gerados: 50.000" >&2
+echo "   • Pontos gerados: $POINT_COUNT" >&2
 echo "   • Imagens processadas: $IMAGE_COUNT" >&2
-echo "   • Resolução: Alta (simulado)" >&2
+echo "   • Resolução: Simulada (mock)" >&2
 echo "   • Próximo passo: Comparação C2C com modelo BIM" >&2
 echo "" >&2
 
