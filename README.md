@@ -254,6 +254,14 @@ BIM_COMPARISON_CLI=./tools/bim-comparison.sh
 
 ## 🧪 Testes
 
+### Popular Banco com Dados Mock
+
+```bash
+npm run seed
+```
+
+Cria 5 projetos, múltiplos registros e análises com diferentes status para desenvolvimento e testes.
+
 ### Teste Rápido
 
 ```bash
@@ -278,6 +286,7 @@ BIM_COMPARISON_CLI=./tools/bim-comparison.sh
 - **[DOCS.md](./DOCS.md)** - Documentação técnica da API
 - **[API_FRONTEND.md](./API_FRONTEND.md)** - **Guia completo para integração frontend** ⭐
 - **[TESTE_PRODUCAO.md](./TESTE_PRODUCAO.md)** - Guia para testes em produção
+- **[README_SEED.md](./README_SEED.md)** - Documentação do script de seed
 - **[scripts/README.md](./scripts/README.md)** - Documentação dos scripts de teste
 
 ## 🏗️ Arquitetura

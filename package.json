@@ -9,7 +9,12 @@
         "start": "node dist/index.js",
         "type-check": "tsc --noEmit",
         "format": "prettier --check .",
-        "format:fix": "prettier --write ."
+        "format:fix": "prettier --write .",
+        "seed": "tsx prisma/seed.ts",
+        "seed:reset": "tsx prisma/seed.ts --reset"
+    },
+    "prisma": {
+        "seed": "tsx prisma/seed.ts"
     },
     "keywords": [
         "metro-sp",
