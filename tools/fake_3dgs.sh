@@ -106,25 +106,24 @@ PLYEOF
 # Gerar pontos mock (cubo com variação) - versão otimizada
 # Gerar menos pontos para ser mais rápido (1000 pontos é suficiente para mock)
 POINT_COUNT=1000
-for i in $(seq 1 $POINT_COUNT); do
-    # Coordenadas simulando um objeto 3D (cubo com variação)
-    # Usar cálculo simples sem bc para ser mais rápido
-    X=$(awk "BEGIN {printf \"%.6f\", ($RANDOM / 32767.0 - 0.5) * 10}")
-    Y=$(awk "BEGIN {printf \"%.6f\", ($RANDOM / 32767.0 - 0.5) * 10}")
-    Z=$(awk "BEGIN {printf \"%.6f\", ($RANDOM / 32767.0 - 0.5) * 10}")
-    
-    # Cores simuladas (RGB)
-    R=$((RANDOM % 256))
-    G=$((RANDOM % 256))
-    B=$((RANDOM % 256))
-    
-    # Normais simuladas
-    NX=$(awk "BEGIN {printf \"%.6f\", ($RANDOM / 32767.0 - 0.5) * 2}")
-    NY=$(awk "BEGIN {printf \"%.6f\", ($RANDOM / 32767.0 - 0.5) * 2}")
-    NZ=$(awk "BEGIN {printf \"%.6f\", ($RANDOM / 32767.0 - 0.5) * 2}")
-    
-    echo "$X $Y $Z $R $G $B $NX $NY $NZ" >> "$OUTPUT_PATH"
-done
+
+# Usar awk para gerar todos os pontos de uma vez (muito mais rápido)
+awk -v count=$POINT_COUNT '
+BEGIN {
+    srand()
+    for (i = 1; i <= count; i++) {
+        x = (rand() - 0.5) * 10
+        y = (rand() - 0.5) * 10
+        z = (rand() - 0.5) * 10
+        r = int(rand() * 256)
+        g = int(rand() * 256)
+        b = int(rand() * 256)
+        nx = (rand() - 0.5) * 2
+        ny = (rand() - 0.5) * 2
+        nz = (rand() - 0.5) * 2
+        printf "%.6f %.6f %.6f %d %d %d %.6f %.6f %.6f\n", x, y, z, r, g, b, nx, ny, nz
+    }
+}' >> "$OUTPUT_PATH"
 
 FILE_SIZE=$(stat -f%z "$OUTPUT_PATH" 2>/dev/null || stat -c%s "$OUTPUT_PATH" 2>/dev/null || echo "0")
 FILE_SIZE_MB=$(echo "scale=2; $FILE_SIZE / 1048576" | bc 2>/dev/null || echo "0")

@@ -77,6 +77,33 @@ Retorna lista de todos os projetos.
 
 Retorna detalhes de um projeto específico.
 
+#### Deletar Projeto
+
+**DELETE** `/api/projects/:id`
+
+Deleta um projeto e todos os dados relacionados.
+
+**Comportamento:**
+- Deleta projeto do banco de dados
+- Deleta automaticamente todos os registros relacionados (cascade)
+- Deleta automaticamente todas as análises relacionadas (cascade)
+- Remove arquivo BIM do sistema de arquivos
+- Remove todas as fotos dos registros
+- Remove todos os arquivos de output (reconstruções e análises)
+
+**Resposta**: `200 OK`
+```json
+{
+  "message": "Projeto deletado com sucesso",
+  "projectId": 1,
+  "deletedFiles": {
+    "bim": true,
+    "records": 2,
+    "analyses": 3
+  }
+}
+```
+
 ### Registros
 
 #### Adicionar Registro
@@ -165,6 +192,68 @@ Retorna status completo da análise:
 - `outputPaths`: Caminhos dos arquivos gerados
 - `meanDistance`: Distância média (se disponível)
 - `stdDeviation`: Desvio padrão (se disponível)
+
+#### Relatório de Execução
+
+**GET** `/api/analyses/:id/report`
+
+Retorna relatório detalhado da execução da pipeline. Veja exemplo completo em [TESTE_PRODUCAO.md](./TESTE_PRODUCAO.md).
+
+#### Relatório de Execução
+
+**GET** `/api/analyses/:id/report`
+
+Retorna relatório detalhado da execução da pipeline incluindo:
+- Informações da análise (status, progresso, duração)
+- Informações do projeto e registro relacionados
+- Etapas executadas e completadas
+- Métricas calculadas (mean_distance, std_deviation)
+- Arquivos gerados
+- Logs completos
+
+**Resposta**: `200 OK`
+```json
+{
+  "analysis": {
+    "id": 1,
+    "status": "completed",
+    "progress": 100,
+    "durationSeconds": 125,
+    "durationFormatted": "2m 5s"
+  },
+  "project": {
+    "id": 1,
+    "name": "Projeto Teste"
+  },
+  "record": {
+    "id": 1,
+    "name": "Registro Teste",
+    "photosCount": 5
+  },
+  "etapas": {
+    "inicializacao": true,
+    "reconstrucao3d": true,
+    "comparacaoC2C": true,
+    "finalizacao": true,
+    "totalEtapas": 4,
+    "etapasCompletas": 4
+  },
+  "metrics": {
+    "meanDistance": 2.45,
+    "stdDeviation": 2.12,
+    "hasMetrics": true
+  },
+  "outputs": {
+    "resultPath": "1/analises/analysis_1/comparacao_c2c.ply",
+    "summaryJsonPath": "1/analises/analysis_1/summary_c2c.json",
+    "filesGenerated": [
+      "Comparação C2C (PLY)",
+      "Métricas (JSON)",
+      "Reconstrução 3D (PLY)"
+    ]
+  }
+}
+```
 
 #### Listar Análises
 
@@ -418,9 +507,21 @@ Verifique os logs da análise para detalhes. Pode ser problema com:
 
 Use `DELETE /api/analyses/:id` para cancelar e reiniciar.
 
+## Scripts Mock para Desenvolvimento
+
+O sistema inclui scripts mock para desenvolvimento e demonstração MVP:
+
+### `tools/fake_3dgs.sh`
+Simula processamento 3DGS, gerando arquivo PLY com ~1.000 pontos. Usado automaticamente se `IMAGE_PROCESSING_CLI` não estiver configurado.
+
+### `tools/bim-comparison.sh`
+Simula CloudCompare, gerando comparação C2C com métricas simuladas. Usado automaticamente se `BIM_COMPARISON_CLI` não estiver configurado.
+
 ## Suporte
 
 Para mais informações, consulte:
-- `README.md` - Guia de início rápido
-- `TECH.md` - Detalhes técnicos das tecnologias
+- **[README.md](./README.md)** - Guia de início rápido
+- **[GUIA_COMPLETO.md](./GUIA_COMPLETO.md)** - Guia completo de instalação e uso
+- **[TESTE_PRODUCAO.md](./TESTE_PRODUCAO.md)** - Guia completo para testes em produção
+- **[scripts/README.md](./scripts/README.md)** - Documentação dos scripts de teste
 

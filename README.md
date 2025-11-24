@@ -1,7 +1,6 @@
 # 🚇 Metrô SP - Backend Pipeline de Processamento
 
-Backend para gerenciamento de pipeline de processamento de imagens e comparação
-BIM para monitoramento de canteiros de obras do Metrô de São Paulo.
+Backend para gerenciamento de pipeline de processamento de imagens e comparação BIM para monitoramento de canteiros de obras do Metrô de São Paulo.
 
 ## 🚀 Início Rápido
 
@@ -9,6 +8,7 @@ BIM para monitoramento de canteiros de obras do Metrô de São Paulo.
 
 - Node.js 20.x ou superior
 - npm ou yarn
+- Docker Desktop (para banco de dados PostgreSQL)
 
 ### Instalação
 
@@ -16,17 +16,17 @@ BIM para monitoramento de canteiros de obras do Metrô de São Paulo.
 # Instalar dependências
 npm install
 
-# Copiar arquivo de exemplo de variáveis de ambiente
-cp .env.example .env
+# Configurar banco de dados
+cd docker
+docker-compose up -d
+cd ..
 
-# Editar .env com suas configurações
-```
-
-### Iniciar o Prisma
-```bash
-npx prisma init
-npx prisma migrate dev --name init
+# Configurar Prisma
 npx prisma generate
+npx prisma db push
+
+# Copiar arquivo de exemplo de variáveis de ambiente
+cp .env.example .env  # Se existir
 ```
 
 ### Executar em Desenvolvimento
@@ -44,20 +44,6 @@ npm run build
 npm start
 ```
 
-# 📡 Endpoints da API (Fluxo de Trabalho)
-
-### A API agora é RESTful e segue um fluxo lógico:
-
-**Fluxo Simplificado (Recomendado):**
-1. Crie um Projeto/Construction (enviando o BIM).
-2. Envie fotos com `photo-processing-full` (processa tudo automaticamente).
-3. Ou execute `analysis-full` para reanalisar usando modelos existentes.
-
-**Fluxo Tradicional (Compatível):**
-1. Crie um Projeto (enviando o BIM).
-2. Adicione Registros (fotos) a esse projeto.
-3. Inicie uma Análise para comparar o BIM e um registro.
-
 ## 📡 Endpoints da API
 
 ### Health Check
@@ -68,149 +54,302 @@ GET /health
 
 ### Projetos
 
+#### Criar Projeto
 ```bash
 POST /api/projects
 Content-Type: multipart/form-data
-  - modeloBim: O arquivo (.ifc, .dwg, .obj) de até 5GB.
-  - name: Nome do projeto (ex: "Estação Morumbi - Bloco A").
-  - description: Descrição (opcional).
-
-Body:
-- fotos: arquivo(s) de imagem
-- modeloBim: caminho para modelo BIM (opcional)
-- parametros: JSON string com parâmetros (opcional)
+  - modeloBim: Arquivo (.ifc, .dwg, .obj, .ply) até 5GB
+  - name: Nome do projeto (obrigatório)
+  - description: Descrição (opcional)
 
 curl -X POST http://localhost:3000/api/projects \
   -F "name=Projeto Estação Morumbi" \
   -F "description=Bloco A da estação" \
-  -F "modeloBim=@./meus_modelos/projeto_final.ifc"
-
-GET /api/projects
-  - Lista todos os projetos.
-
-GET /api/projects/:id
-  - Obtém detalhes de um projeto específico.
+  -F "modeloBim=@./modelo.ifc"
 ```
 
-### Registro
+#### Listar Projetos
+```bash
+GET /api/projects
+```
 
+#### Obter Projeto
+```bash
+GET /api/projects/:id
+```
+
+#### Deletar Projeto
+```bash
+DELETE /api/projects/:id
+
+curl -X DELETE http://localhost:3000/api/projects/1
+```
+
+**Nota:** Deleta o projeto e todos os registros/análises relacionados, além de remover arquivos físicos.
+
+### Registros
+
+#### Criar Registro
 ```bash
 POST /api/projects/:id/records
-  - Adiciona um novo registro de fotos a um projeto existente.
 Content-Type: multipart/form-data
-  - fotos: Array de arquivos de imagem (ex: fotos=@foto1.jpg, fotos=@foto2.jpg).
-  - name: Nome do registro (ex: "Semana 5 - Fachada Leste").
+  - fotos: Array de arquivos de imagem (mínimo 3, máximo 20)
+  - name: Nome do registro (obrigatório)
 
 curl -X POST http://localhost:3000/api/projects/1/records \
   -F "name=Semana 5 - Fachada Leste" \
-  -F "fotos=@./fotos/img_001.jpg" \
-  -F "fotos=@./fotos/img_002.jpg"
+  -F "fotos=@./foto1.jpg" \
+  -F "fotos=@./foto2.jpg" \
+  -F "fotos=@./foto3.jpg"
+```
 
+#### Listar Registros
+```bash
 GET /api/projects/:id/records
-  - Lista todos os registros de fotos de um projeto específico.
 ```
 
-### Análises (Jobs)
-
+#### Importar PLY Existente
 ```bash
-POST /api/analyses
-  - Inicia uma nova análise (job), comparando um projectId com um recordId.
-Content-Type: application/json
-  - projectId: ID do projeto (BIM)
-  - recordId: ID do registro (Fotos)
-  - parametros: JSON com parâmetros (opcional, ex: {"threshold": 0.8})
-
-curl -X POST http://localhost:3000/api/analyses \
-  -H "Content-Type: application/json" \
-  -d '{
-        "projectId": 1,
-        "recordId": 1,
-        "parametros": {"threshold": 0.9}
-      }'
-
-GET /api/analyses/:id
-  - Consulta o status de uma análise (job). O jobId retornado acima é o id da análise.
-
-GET /api/analyses
-  - Lista todas as análises do sistema.
-
-DELETE /api/analyses/:id
-Cancela uma análise em execução.
-```
-
-### Novos Endpoints (Conforme Diagramas)
-
-```bash
-# Criar projeto (alias)
-POST /api/construction
+POST /api/:constructionId/records/import-ply
 Content-Type: multipart/form-data
-  - modeloBim: Arquivo BIM (.ifc, .dwg, .obj)
-  - name: Nome do projeto
-  - description: Descrição (opcional)
+  - plyFile: Arquivo PLY (.ply) até 10GB
+  - name: Nome do registro (obrigatório)
 
-# Listar projetos (alias)
-GET /api/constructions
+curl -X POST http://localhost:3000/api/2/records/import-ply \
+  -F "name=Registro 3DGS Importado" \
+  -F "plyFile=@./3dgs.ply"
+```
 
-# Processamento completo (Upload fotos + 3DGS + C2C automático)
+### Processamento Completo
+
+#### Photo Processing Full (Upload + 3DGS + C2C)
+```bash
 POST /api/:constructionId/photo-processing-full
 Content-Type: multipart/form-data
-  - fotos: Array de arquivos de imagem (mínimo 3 fotos)
-  - name: Nome do registro
+  - fotos: Array de arquivos de imagem (mínimo 3)
+  - name: Nome do registro (obrigatório)
   - parametros: JSON string com parâmetros (opcional)
 
 curl -X POST http://localhost:3000/api/1/photo-processing-full \
-  -F "name=Registro Semana 5" \
-  -F "fotos=@./fotos/img_001.jpg" \
-  -F "fotos=@./fotos/img_002.jpg" \
-  -F "fotos=@./fotos/img_003.jpg"
+  -F "name=Registro Completo" \
+  -F "fotos=@./foto1.jpg" \
+  -F "fotos=@./foto2.jpg" \
+  -F "fotos=@./foto3.jpg"
+```
 
-# Análise usando modelos já armazenados (apenas C2C)
+**Resposta:** `202 Accepted` com `analysisId` e `recordId`
+
+#### Analysis Full (Apenas C2C)
+```bash
 POST /api/:constructionId/analysis-full
 Content-Type: application/json
-  - recordId: ID do registro específico (opcional, usa o mais recente se não fornecido)
+  - recordId: ID do registro específico (opcional, usa o mais recente)
   - parametros: JSON com parâmetros (opcional)
 
 curl -X POST http://localhost:3000/api/1/analysis-full \
   -H "Content-Type: application/json" \
-  -d '{"parametros": {"threshold": 0.9}}'
+  -d '{"recordId": 1}'
+```
 
-# Listar análises de um projeto
-GET /api/:constructionId/analyses
+### Análises
 
-# Visualizar arquivo (BIM, registro ou análise)
+#### Iniciar Análise (Tradicional)
+```bash
+POST /api/analyses
+Content-Type: application/json
+  - projectId: ID do projeto (obrigatório)
+  - recordId: ID do registro (obrigatório)
+  - parametros: JSON com parâmetros (opcional)
+
+curl -X POST http://localhost:3000/api/analyses \
+  -H "Content-Type: application/json" \
+  -d '{"projectId": 1, "recordId": 1}'
+```
+
+#### Consultar Status
+```bash
+GET /api/analyses/:id
+
+curl http://localhost:3000/api/analyses/1
+```
+
+#### Relatório de Execução
+```bash
+GET /api/analyses/:id/report
+
+curl http://localhost:3000/api/analyses/1/report | jq
+```
+
+#### Listar Análises
+```bash
+GET /api/analyses
+```
+
+#### Cancelar Análise
+```bash
+DELETE /api/analyses/:id
+
+curl -X DELETE http://localhost:3000/api/analyses/1
+```
+
+### Visualização de Arquivos
+
+```bash
 GET /api/:constructionId/:fileType/:fileId
   - fileType: "bim", "registro" ou "analise"
   - fileId: ID do registro ou análise (não necessário para BIM)
 
-curl http://localhost:3000/api/1/registro/1
-curl http://localhost:3000/api/1/analise/1
+# Visualizar BIM
 curl http://localhost:3000/api/1/bim/0
+
+# Visualizar reconstrução 3D
+curl http://localhost:3000/api/1/registro/1
+
+# Visualizar resultado da análise
+curl http://localhost:3000/api/1/analise/1
+```
+
+### Construções (Alias)
+
+```bash
+# Criar construção (alias para criar projeto)
+POST /api/construction
+
+# Listar construções (alias para listar projetos)
+GET /api/constructions
+
+# Listar análises de um projeto
+GET /api/:constructionId/analyses
 ```
 
 ## 🔧 Configuração
 
-Edite o arquivo `.env` para configurar:
+### Variáveis de Ambiente
 
-- Porta do servidor
-- Diretórios de trabalho (uploads, outputs, logs)
-- Limite de jobs concorrentes
-- Timeout por job
-- Caminhos para ferramentas CLI externas
+Crie um arquivo `.env` na raiz do projeto:
 
-## 📚 Documentação
+```bash
+# Servidor
+PORT=3000
+NODE_ENV=development
 
-- `TECH.md` - Detalhes sobre as tecnologias utilizadas
-- `DOCS.md` - Documentação técnica completa da API
-- `TESTING.md` - Guia completo de testes da aplicação
+# Banco de Dados
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/metro_pipeline
+
+# Diretórios
+UPLOADS_DIR=./src/shared/data/uploads
+OUTPUTS_DIR=./src/shared/data/outputs
+
+# Processamento
+MAX_CONCURRENT_JOBS=3
+
+# Ferramentas CLI (opcional - usa mocks se não especificado)
+IMAGE_PROCESSING_CLI=./tools/fake_3dgs.sh
+BIM_COMPARISON_CLI=./tools/bim-comparison.sh
+
+# Para produção, configure caminhos reais:
+# IMAGE_PROCESSING_CLI=/caminho/para/colmap
+# BIM_COMPARISON_CLI=/caminho/para/CloudCompare
+```
+
+## 🧪 Testes
+
+### Teste Rápido
+
+```bash
+./test-quick.sh
+```
+
+### Teste Completo (com PLY)
+
+```bash
+./test-complete.sh
+```
+
+### Teste Pipeline MVP (Mock Completo)
+
+```bash
+./scripts/test-pipeline-mvp.sh
+```
+
+## 📚 Documentação Completa
+
+- **[GUIA_COMPLETO.md](./GUIA_COMPLETO.md)** - Guia completo de instalação e uso
+- **[DOCS.md](./DOCS.md)** - Documentação técnica da API
+- **[TESTE_PRODUCAO.md](./TESTE_PRODUCAO.md)** - Guia para testes em produção
+- **[scripts/README.md](./scripts/README.md)** - Documentação dos scripts de teste
+
+## 🏗️ Arquitetura
+
+### Fluxo de Processamento
+
+1. **Upload BIM** → Criar projeto
+2. **Upload Fotos** → Criar registro
+3. **Processamento 3DGS** → Reconstrução 3D (gera arquivo PLY)
+4. **Comparação C2C** → CloudCompare (compara BIM vs Reconstrução)
+5. **Resultado** → Arquivo PLY com distâncias coloridas + métricas JSON
+
+### Estrutura de Diretórios
+
+```
+src/shared/data/
+├── uploads/
+│   ├── projects/:id/          # Arquivos BIM
+│   └── :constructionId/registros/:recordId/  # Fotos
+└── outputs/
+    ├── :constructionId/registros/:recordId/  # Reconstruções 3D
+    └── :constructionId/analises/:analysisId/  # Resultados C2C
+```
 
 ## 🔌 Integração com Ferramentas CLI
 
-O backend executa ferramentas CLI externas para processamento. Configure os
-caminhos no `.env`:
+O sistema suporta duas formas de processamento:
+
+### Modo Mock (Desenvolvimento)
+
+Scripts mock estão disponíveis em `tools/`:
+- `tools/fake_3dgs.sh` - Simula processamento 3DGS
+- `tools/bim-comparison.sh` - Simula CloudCompare
+
+São usados automaticamente se as ferramentas reais não estiverem configuradas.
+
+### Modo Produção
+
+Configure as ferramentas reais no `.env`:
+- **3DGS**: COLMAP, Brush ou similar
+- **CloudCompare**: CloudCompare CLI
+
+## 🚨 Troubleshooting
+
+### Banco de dados não conecta
 
 ```bash
-IMAGE_PROCESSING_CLI=./tools/image-processor
-BIM_COMPARISON_CLI=./tools/bim-comparison
+cd docker
+docker-compose ps
+docker-compose up -d
 ```
 
-As ferramentas devem seguir o padrão de argumentos descrito em `TECH.md`.
+### Porta 5432 já em uso
+
+```bash
+# Verificar processo
+lsof -i :5432
+
+# Ou alterar porta no docker-compose.yml
+```
+
+### Erro de Prisma drift
+
+```bash
+npx prisma migrate resolve --applied <migration_name>
+# ou
+npx prisma db push --accept-data-loss
+```
+
+## 📝 Licença
+
+Este projeto é parte do sistema de monitoramento do Metrô de São Paulo.
+
+## 👥 Contribuindo
+
+Para contribuir com o projeto, consulte a documentação técnica em `DOCS.md`.

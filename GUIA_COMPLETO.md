@@ -25,11 +25,14 @@ Este é um backend para gerenciamento de pipeline de processamento de imagens e 
 
 - ✅ Upload de modelos BIM (.ifc, .dwg, .obj, .ply)
 - ✅ Upload de fotos de canteiro de obras
-- ✅ **Importação de arquivos PLY já processados** (novo)
+- ✅ **Importação de arquivos PLY já processados**
+- ✅ **Deletar projetos** (com limpeza completa de arquivos)
 - ✅ Processamento automático de reconstrução 3D (3DGS)
 - ✅ Comparação Cloud-to-Cloud (C2C) entre BIM e reconstrução
 - ✅ Monitoramento de progresso em tempo real
+- ✅ **Relatório detalhado de execução**
 - ✅ Visualização de arquivos gerados
+- ✅ **Scripts mock para desenvolvimento e MVP**
 
 ### Tecnologias
 
@@ -558,6 +561,19 @@ curl http://localhost:3000/api/analyses/1 | jq
 - `failed` - Falhou
 - `cancelled` - Cancelado
 
+#### Relatório de Execução
+
+```bash
+curl http://localhost:3000/api/analyses/1/report | jq
+```
+
+Retorna relatório completo com:
+- Informações da análise (duração, progresso)
+- Etapas executadas
+- Métricas calculadas
+- Arquivos gerados
+- Logs completos
+
 ---
 
 ## 📡 Endpoints Disponíveis
@@ -591,6 +607,39 @@ GET /api/projects
 ```
 GET /api/projects/:id
 ```
+
+#### Deletar Projeto
+```
+DELETE /api/projects/:id
+```
+
+**Descrição:** Deleta um projeto e todos os dados relacionados (registros, análises e arquivos físicos).
+
+**Exemplo:**
+```bash
+curl -X DELETE http://localhost:3000/api/projects/1
+```
+
+**Resposta:**
+```json
+{
+  "message": "Projeto deletado com sucesso",
+  "projectId": 1,
+  "deletedFiles": {
+    "bim": true,
+    "records": 2,
+    "analyses": 3
+  }
+}
+```
+
+**Atenção:** Esta operação é irreversível e remove:
+- Projeto do banco de dados
+- Todos os registros relacionados (cascade)
+- Todas as análises relacionadas (cascade)
+- Arquivo BIM do sistema de arquivos
+- Todas as fotos dos registros
+- Todos os arquivos de output (reconstruções e análises)
 
 ### Construções (Alias)
 
@@ -970,6 +1019,18 @@ Agora você tem um guia completo para:
 - ✅ Instalar o projeto do zero
 - ✅ Configurar tudo corretamente
 - ✅ Iniciar o servidor
+- ✅ Testar todas as funcionalidades
+- ✅ Usar scripts mock para desenvolvimento
+- ✅ Testar em ambiente produtivo
+
+## 📚 Documentação Adicional
+
+Para mais informações, consulte:
+
+- **[README.md](./README.md)** - Guia de início rápido
+- **[DOCS.md](./DOCS.md)** - Documentação técnica completa da API
+- **[TESTE_PRODUCAO.md](./TESTE_PRODUCAO.md)** - Guia completo para testes em produção
+- **[scripts/README.md](./scripts/README.md)** - Documentação dos scripts de teste
 - ✅ Testar todos os endpoints
 - ✅ Resolver problemas comuns
 

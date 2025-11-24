@@ -580,20 +580,61 @@ export class PipelineManager {
             this.atualizarStatusJob(analysisId, {
                 logs: [`[${etapa}] 🔧 Executando: ${commandString}`]
             });
-            const processo = spawn(commandString, [], {
+            // Para scripts .sh, usar bash explicitamente
+            let spawnArgs: string[] = [];
+            let spawnCommand = commandString;
+            
+            if (cliPath.endsWith(".sh")) {
+                spawnCommand = "bash";
+                spawnArgs = [cliPath, ...args];
+            } else {
+                spawnArgs = args;
+            }
+            
+            const processo = spawn(spawnCommand, spawnArgs, {
                 stdio: ["ignore", "pipe", "pipe"],
-                shell: true
+                shell: !cliPath.endsWith(".sh") // Só usar shell se não for script .sh
             });
+            
             this.processos.set(analysisId, processo);
             let stdout = "";
             let stderr = "";
+            
             processo.stdout?.on("data", (data) => {
-                stdout += data.toString();
+                const output = data.toString();
+                stdout += output;
+                // Atualizar logs em tempo real para scripts mock
+                const lines = output.split("\n").filter(Boolean);
+                if (lines.length > 0) {
+                    this.atualizarStatusJob(analysisId, {
+                        logs: lines.map((line: string) => `[${etapa}] ${line.trim()}`)
+                    });
+                }
             });
+            
             processo.stderr?.on("data", (data) => {
-                stderr += data.toString();
+                const output = data.toString();
+                stderr += output;
+                // Logs de erro também aparecem em stderr nos scripts mock
+                const lines = output.split("\n").filter(Boolean);
+                if (lines.length > 0) {
+                    this.atualizarStatusJob(analysisId, {
+                        logs: lines.map((line: string) => `[${etapa}] ${line.trim()}`)
+                    });
+                }
             });
+            
+            // Timeout de segurança (5 minutos)
+            const timeout = setTimeout(() => {
+                if (this.processos.has(analysisId)) {
+                    processo.kill("SIGTERM");
+                    this.processos.delete(analysisId);
+                    reject(new Error(`Timeout: ${etapa} demorou mais de 5 minutos`));
+                }
+            }, 5 * 60 * 1000);
+            
             processo.on("close", (code) => {
+                clearTimeout(timeout);
                 this.processos.delete(analysisId);
                 const logs = (stdout + stderr)
                     .split("\n")
