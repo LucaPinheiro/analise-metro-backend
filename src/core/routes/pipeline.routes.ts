@@ -58,6 +58,10 @@ router.get(
     "/projects/:id",
     projectController.getProjeto.bind(projectController)
 );
+router.delete(
+    "/projects/:id",
+    projectController.deletarProjeto.bind(projectController)
+);
 
 router.post(
     "/projects/:id/records",
