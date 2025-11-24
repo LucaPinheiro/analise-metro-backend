@@ -1,6 +1,7 @@
 import { ChildProcess, spawn } from "child_process";
 import path from "path";
 import fs from "fs";
+import os from "os";
 import prisma from "@database/db";
 import { IProcessamentoParams } from "@interfaces/IProcessamentoParams";
 import { Analysis, Project, Record } from "@prisma/client";
@@ -447,11 +448,15 @@ export class PipelineManager {
         
         // Se não especificado ou não existe, tentar usar script mock
         if (!fs.existsSync(cliPath) || cliPath === "./tools/image-processor") {
-            const mockPath = path.resolve(process.cwd(), "tools/fake_3dgs.sh");
+            // Detectar plataforma e usar script apropriado
+            const isWindows = os.platform() === "win32";
+            const mockExtension = isWindows ? ".bat" : ".sh";
+            const mockPath = path.resolve(process.cwd(), `tools/fake_3dgs${mockExtension}`);
+            
             if (fs.existsSync(mockPath)) {
                 await this.atualizarStatusJob(analysisId, {
                     logs: [
-                        "   ℹ️  Usando script mock 3DGS para desenvolvimento"
+                        `   ℹ️  Usando script mock 3DGS para desenvolvimento (${isWindows ? "Windows" : "Unix"})`
                     ]
                 });
                 cliPath = mockPath;
@@ -491,14 +496,18 @@ export class PipelineManager {
         const toolExists = fs.existsSync(cliPath);
         const isCloudCompare = cliPath === "CloudCompare" || cliPath.includes("CloudCompare");
         
+        // Detectar plataforma para usar script mock correto
+        const isWindows = os.platform() === "win32";
+        const mockExtension = isWindows ? ".bat" : ".sh";
+        
         // Se não existe e não é CloudCompare padrão, usar mock em desenvolvimento
         if (!toolExists && !isCloudCompare) {
-            const mockPath = path.resolve(process.cwd(), "tools/bim-comparison.sh");
+            const mockPath = path.resolve(process.cwd(), `tools/bim-comparison${mockExtension}`);
             if (fs.existsSync(mockPath)) {
                 await this.atualizarStatusJob(analysisId, {
                     logs: [
                         `⚠️ Ferramenta ${cliPath} não encontrada`,
-                        `🔄 Usando script mock para desenvolvimento`
+                        `🔄 Usando script mock para desenvolvimento (${isWindows ? "Windows" : "Unix"})`
                     ]
                 });
                 cliPath = mockPath;
@@ -514,12 +523,12 @@ export class PipelineManager {
             }
         } else if (!toolExists && isCloudCompare) {
             // CloudCompare não encontrado, tentar usar mock
-            const mockPath = path.resolve(process.cwd(), "tools/bim-comparison.sh");
+            const mockPath = path.resolve(process.cwd(), `tools/bim-comparison${mockExtension}`);
             if (fs.existsSync(mockPath)) {
                 await this.atualizarStatusJob(analysisId, {
                     logs: [
                         `⚠️ CloudCompare não encontrado no sistema`,
-                        `🔄 Usando script mock para desenvolvimento`
+                        `🔄 Usando script mock para desenvolvimento (${isWindows ? "Windows" : "Unix"})`
                     ]
                 });
                 cliPath = mockPath;
@@ -563,37 +572,36 @@ export class PipelineManager {
         etapa: string
     ): Promise<string> {
         return new Promise((resolve, reject) => {
-            // Verificar se é um script shell e garantir que seja executável
-            let commandToExecute = cliPath;
-            if (cliPath.endsWith(".sh") || cliPath.endsWith(".bat")) {
-                // Para scripts, usar shell apropriado
-                if (cliPath.endsWith(".sh")) {
-                    commandToExecute = `bash "${cliPath}"`;
-                } else {
-                    commandToExecute = cliPath;
-                }
-            } else if (cliPath.includes(" ")) {
-                commandToExecute = `"${cliPath}"`;
-            }
-            
-            const commandString = `${commandToExecute} ${args.join(" ")}`;
-            this.atualizarStatusJob(analysisId, {
-                logs: [`[${etapa}] 🔧 Executando: ${commandString}`]
-            });
-            // Para scripts .sh, usar bash explicitamente
+            const isWindows = os.platform() === "win32";
+            let spawnCommand: string;
             let spawnArgs: string[] = [];
-            let spawnCommand = commandString;
             
+            // Detectar tipo de script e configurar comando apropriado
             if (cliPath.endsWith(".sh")) {
+                // Script bash - usar bash explicitamente
                 spawnCommand = "bash";
                 spawnArgs = [cliPath, ...args];
+            } else if (cliPath.endsWith(".bat")) {
+                // Script batch Windows - usar cmd
+                spawnCommand = "cmd";
+                spawnArgs = ["/c", cliPath, ...args];
             } else {
+                // Comando direto
+                spawnCommand = cliPath;
                 spawnArgs = args;
             }
             
+            const commandString = spawnArgs.length > 0 
+                ? `${spawnCommand} ${spawnArgs.join(" ")}`
+                : spawnCommand;
+            
+            this.atualizarStatusJob(analysisId, {
+                logs: [`[${etapa}] 🔧 Executando: ${commandString}`]
+            });
+            
             const processo = spawn(spawnCommand, spawnArgs, {
                 stdio: ["ignore", "pipe", "pipe"],
-                shell: !cliPath.endsWith(".sh") // Só usar shell se não for script .sh
+                shell: false // Não usar shell para melhor controle
             });
             
             this.processos.set(analysisId, processo);

@@ -276,6 +276,7 @@ BIM_COMPARISON_CLI=./tools/bim-comparison.sh
 
 - **[GUIA_COMPLETO.md](./GUIA_COMPLETO.md)** - Guia completo de instalação e uso
 - **[DOCS.md](./DOCS.md)** - Documentação técnica da API
+- **[API_FRONTEND.md](./API_FRONTEND.md)** - **Guia completo para integração frontend** ⭐
 - **[TESTE_PRODUCAO.md](./TESTE_PRODUCAO.md)** - Guia para testes em produção
 - **[scripts/README.md](./scripts/README.md)** - Documentação dos scripts de teste
 
