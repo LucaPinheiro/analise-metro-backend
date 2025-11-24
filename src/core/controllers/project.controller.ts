@@ -61,7 +61,11 @@ export class ProjectController {
                     return;
                 }
             }
-            res.status(500).json({ error: "Erro interno do servidor" });
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            res.status(500).json({ 
+                error: "Erro interno do servidor",
+                details: process.env.NODE_ENV === "development" ? errorMessage : undefined
+            });
         }
     }
 
@@ -72,7 +76,12 @@ export class ProjectController {
             });
             res.json(projetos);
         } catch (error) {
-            res.status(500).json({ error: "Erro interno do servidor" });
+            console.error("Erro ao listar projetos:", error);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            res.status(500).json({ 
+                error: "Erro interno do servidor",
+                details: process.env.NODE_ENV === "development" ? errorMessage : undefined
+            });
         }
     }
 
@@ -89,7 +98,12 @@ export class ProjectController {
             }
             res.json(projeto);
         } catch (error) {
-            res.status(500).json({ error: "Erro interno do servidor" });
+            console.error("Erro ao buscar projeto:", error);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            res.status(500).json({ 
+                error: "Erro interno do servidor",
+                details: process.env.NODE_ENV === "development" ? errorMessage : undefined
+            });
         }
     }
 }

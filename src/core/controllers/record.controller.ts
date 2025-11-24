@@ -60,7 +60,11 @@ export class RecordController {
             res.status(201).json(registroAtualizado);
         } catch (error) {
             console.error("Erro ao adicionar registro:", error);
-            res.status(500).json({ error: "Erro interno do servidor" });
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            res.status(500).json({ 
+                error: "Erro interno do servidor",
+                details: process.env.NODE_ENV === "development" ? errorMessage : undefined
+            });
         }
     }
 
@@ -73,7 +77,12 @@ export class RecordController {
             });
             res.json(registros);
         } catch (error) {
-            res.status(500).json({ error: "Erro interno do servidor" });
+            console.error("Erro ao listar registros:", error);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            res.status(500).json({ 
+                error: "Erro interno do servidor",
+                details: process.env.NODE_ENV === "development" ? errorMessage : undefined
+            });
         }
     }
 }

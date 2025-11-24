@@ -78,6 +78,10 @@ router.get(
     analysisController.getAnalysisStatus.bind(analysisController)
 );
 router.get(
+    "/analyses/:id/report",
+    analysisController.getExecutionReport.bind(analysisController)
+);
+router.get(
     "/analyses",
     analysisController.listarAnalyses.bind(analysisController)
 );
@@ -97,6 +101,11 @@ router.get(
     constructionController.listarConstructions.bind(constructionController)
 );
 
+router.post(
+    "/:constructionId/records/import-ply",
+    upload.single("plyFile"),
+    constructionController.importPLY.bind(constructionController)
+);
 router.post(
     "/:constructionId/photo-processing-full",
     upload.array("fotos", 20),

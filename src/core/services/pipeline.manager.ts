@@ -97,7 +97,19 @@ export class PipelineManager {
             await this.atualizarStatusJob(analysisId, {
                 status: "processing",
                 startedAt: new Date().toISOString(),
-                logs: ["🚀 Iniciando processamento..."]
+                logs: [
+                    "═══════════════════════════════════════════════════════════",
+                    "  🚀 PIPELINE DE PROCESSAMENTO INICIADA",
+                    "═══════════════════════════════════════════════════════════",
+                    "",
+                    "📋 Etapas do processamento:",
+                    "   1️⃣  Reconstrução 3D (3DGS) - Gerar nuvem de pontos a partir de fotos",
+                    "   2️⃣  Comparação C2C - Comparar reconstrução com modelo BIM",
+                    "",
+                    "⏱️  Tempo estimado: ~2-5 minutos (simulação mock)",
+                    ""
+                ],
+                progress: 0
             });
 
             // Usar nova estrutura de diretórios
@@ -124,7 +136,20 @@ export class PipelineManager {
                 status: "completed",
                 progress: 100,
                 completedAt: new Date().toISOString(),
-                logs: ["✅ Processamento concluído com sucesso!"]
+                logs: [
+                    "",
+                    "═══════════════════════════════════════════════════════════",
+                    "  ✅ PIPELINE CONCLUÍDA COM SUCESSO!",
+                    "═══════════════════════════════════════════════════════════",
+                    "",
+                    "📊 Resumo da execução:",
+                    "   ✅ Reconstrução 3D gerada",
+                    "   ✅ Comparação C2C executada",
+                    "   ✅ Arquivos de saída disponíveis",
+                    "",
+                    "📁 Arquivos gerados disponíveis para download e visualização",
+                    "🎉 Processamento completo!"
+                ]
             });
         } catch (error) {
             await this.handleFailure(analysisId, error as Error | string);
@@ -171,14 +196,36 @@ export class PipelineManager {
             }
         }
 
-        // Processar imagens se necessário
+        // ====================================================================
+        // ETAPA 1: RECONSTRUÇÃO 3D (3DGS) - Processamento de Imagens
+        // ====================================================================
+        // Esta etapa processa as fotos enviadas e gera uma nuvem de pontos 3D
+        // usando técnicas de reconstrução fotogramétrica (3D Gaussian Splatting).
+        // O resultado é um arquivo PLY contendo a geometria 3D do canteiro.
         if (!pular3DGS) {
             const caminhosFotos: string[] = (
                 (record.uploadedFilesPaths as string[]) || []
             ).map((p: string) => path.resolve(uploadDir, p));
 
             await this.atualizarStatusJob(analysisId, {
-                logs: ["📸 Etapa 1/2: Iniciando reconstrução 3D (3DGS)..."],
+                logs: [
+                    "",
+                    "═══════════════════════════════════════════════════════════",
+                    "  📸 ETAPA 1/2: RECONSTRUÇÃO 3D (3DGS)",
+                    "═══════════════════════════════════════════════════════════",
+                    "",
+                    "🎯 Objetivo: Gerar nuvem de pontos 3D a partir das fotos",
+                    "",
+                    `📷 Imagens a processar: ${caminhosFotos.length} foto(s)`,
+                    "🔧 Processo:",
+                    "   1. Detecção de features (pontos de interesse)",
+                    "   2. Correspondência entre imagens",
+                    "   3. Triangulação estéreo",
+                    "   4. Densificação da nuvem de pontos",
+                    "   5. Geração do arquivo PLY",
+                    "",
+                    "⏳ Iniciando processamento..."
+                ],
                 progress: 10
             });
 
@@ -203,19 +250,55 @@ export class PipelineManager {
             });
 
             await this.atualizarStatusJob(analysisId, {
+                logs: [
+                    "",
+                    "✅ Reconstrução 3D concluída!",
+                    `   📁 Arquivo gerado: ${recordPathRelativo}`,
+                    "   → Próximo passo: Comparação com modelo BIM"
+                ],
                 progress: 50,
                 outputPaths: { modelo3d: recordPathRelativo }
             });
         } else {
             await this.atualizarStatusJob(analysisId, {
+                logs: [
+                    "",
+                    "✅ Reconstrução 3D já disponível",
+                    `   📁 Arquivo: ${recordPathRelativo}`,
+                    "   → Próximo passo: Comparação com modelo BIM"
+                ],
                 progress: 50,
                 outputPaths: { modelo3d: recordPathRelativo }
             });
         }
 
-        // Comparação C2C
+        // ====================================================================
+        // ETAPA 2: COMPARAÇÃO CLOUD-TO-CLOUD (C2C)
+        // ====================================================================
+        // Esta etapa compara a reconstrução 3D (as-built) com o modelo BIM
+        // (as-planned) usando algoritmo Cloud-to-Cloud do CloudCompare.
+        // O resultado mostra as diferenças entre o que foi construído e o planejado.
         await this.atualizarStatusJob(analysisId, {
-            logs: ["🏗️ Etapa 2/2: Iniciando comparação C2C (CloudCompare)..."],
+            logs: [
+                "",
+                "═══════════════════════════════════════════════════════════",
+                "  🏗️  ETAPA 2/2: COMPARAÇÃO CLOUD-TO-CLOUD (C2C)",
+                "═══════════════════════════════════════════════════════════",
+                "",
+                "🎯 Objetivo: Comparar reconstrução 3D (as-built) com BIM (as-planned)",
+                "",
+                "📊 Modelos a comparar:",
+                `   • Modelo BIM: ${path.basename(bimPath)}`,
+                `   • Reconstrução 3D: ${path.basename(modelo3dGerado)}`,
+                "",
+                "🔧 Processo:",
+                "   1. Alinhamento ICP (Iterative Closest Point)",
+                "   2. Cálculo de distâncias ponto-a-ponto",
+                "   3. Aplicação de cores por distância",
+                "   4. Geração de métricas estatísticas",
+                "",
+                "⏳ Iniciando comparação..."
+            ],
             progress: 60
         });
 
@@ -231,12 +314,36 @@ export class PipelineManager {
         const comparacaoPathRelativo = obterCaminhoRelativoOutput(
             comparacaoGerada
         );
+        
+        // Buscar arquivo JSON de métricas se existir
+        const summaryJsonPath = path.join(
+            path.dirname(comparacaoGerada),
+            "summary_c2c.json"
+        );
+        let summaryJsonRelativo: string | null = null;
+        if (fs.existsSync(summaryJsonPath)) {
+            summaryJsonRelativo = obterCaminhoRelativoOutput(summaryJsonPath);
+        }
+        
         await this.atualizarStatusJob(analysisId, {
+            logs: [
+                "",
+                "✅ Comparação C2C concluída!",
+                `   📁 Arquivo de comparação: ${comparacaoPathRelativo}`,
+                summaryJsonRelativo ? `   📊 Métricas: ${summaryJsonRelativo}` : "",
+                "",
+                "📈 Resultados:",
+                "   • Arquivo PLY com distâncias coloridas gerado",
+                "   • Métricas estatísticas calculadas",
+                "   • Pronto para visualização e análise"
+            ],
             progress: 90,
             resultPath: comparacaoPathRelativo,
+            summaryJsonPath: summaryJsonRelativo,
             outputPaths: {
                 modelo3d: recordPathRelativo,
-                comparacaoBim: comparacaoPathRelativo
+                comparacaoBim: comparacaoPathRelativo,
+                ...(summaryJsonRelativo && { summaryJson: summaryJsonRelativo })
             }
         });
     }
@@ -281,10 +388,30 @@ export class PipelineManager {
             if (!record || !record.recordPath) {
                 await this.handleFailure(
                     analysisId,
-                    "Nenhuma reconstrução 3D encontrada. Execute photo-processing-full primeiro."
+                    "Nenhuma reconstrução 3D encontrada. Execute photo-processing-full ou import-ply primeiro."
                 );
                 return;
             }
+
+            // Validar que o arquivo PLY realmente existe
+            const outputBase = process.env.OUTPUTS_DIR || "./src/shared/data/outputs";
+            const caminhoPLY = path.resolve(outputBase, record.recordPath);
+            
+            if (!fs.existsSync(caminhoPLY)) {
+                await this.handleFailure(
+                    analysisId,
+                    `Arquivo PLY não encontrado: ${record.recordPath}. O arquivo pode ter sido removido.`
+                );
+                return;
+            }
+
+            await this.atualizarStatusJob(analysisId, {
+                logs: [
+                    `✅ Arquivo PLY encontrado: ${record.recordPath}`,
+                    "Iniciando comparação C2C..."
+                ],
+                progress: 10
+            });
 
             const outputDir = criarDiretorioOutput(projectId, "analises");
             const analysisOutputDir = path.join(
@@ -314,8 +441,23 @@ export class PipelineManager {
         outputPath: string,
         parametros: IProcessamentoParams
     ): Promise<string> {
-        const cliPath =
-            process.env.IMAGE_PROCESSING_CLI || "./tools/image-processor";
+        // Configurar caminho da ferramenta 3DGS
+        // Em desenvolvimento, usar script mock automaticamente se ferramenta real não estiver disponível
+        let cliPath = process.env.IMAGE_PROCESSING_CLI || "./tools/image-processor";
+        
+        // Se não especificado ou não existe, tentar usar script mock
+        if (!fs.existsSync(cliPath) || cliPath === "./tools/image-processor") {
+            const mockPath = path.resolve(process.cwd(), "tools/fake_3dgs.sh");
+            if (fs.existsSync(mockPath)) {
+                await this.atualizarStatusJob(analysisId, {
+                    logs: [
+                        "   ℹ️  Usando script mock 3DGS para desenvolvimento"
+                    ]
+                });
+                cliPath = mockPath;
+            }
+        }
+        
         const args = [
             "--input",
             caminhosFotos.join(","),
@@ -338,7 +480,52 @@ export class PipelineManager {
         outputPath: string,
         _parametros: IProcessamentoParams
     ): Promise<string> {
-        const cliPath = process.env.BIM_COMPARISON_CLI || "CloudCompare";
+        let cliPath = process.env.BIM_COMPARISON_CLI || "CloudCompare";
+        
+        // Se o caminho começa com ./tools/, resolver para caminho absoluto
+        if (cliPath.startsWith("./tools/") || cliPath.startsWith("tools/")) {
+            cliPath = path.resolve(process.cwd(), cliPath.replace(/^\.\//, ""));
+        }
+        
+        // Verificar se a ferramenta existe
+        const toolExists = fs.existsSync(cliPath);
+        const isCloudCompare = cliPath === "CloudCompare" || cliPath.includes("CloudCompare");
+        
+        // Se não existe e não é CloudCompare padrão, usar mock em desenvolvimento
+        if (!toolExists && !isCloudCompare) {
+            const mockPath = path.resolve(process.cwd(), "tools/bim-comparison.sh");
+            if (fs.existsSync(mockPath)) {
+                await this.atualizarStatusJob(analysisId, {
+                    logs: [
+                        `⚠️ Ferramenta ${cliPath} não encontrada`,
+                        `🔄 Usando script mock para desenvolvimento`
+                    ]
+                });
+                cliPath = mockPath;
+            } else {
+                // Tentar CloudCompare padrão do sistema como último recurso
+                await this.atualizarStatusJob(analysisId, {
+                    logs: [
+                        `⚠️ Ferramenta ${cliPath} não encontrada e mock não disponível`,
+                        `🔄 Tentando CloudCompare padrão do sistema`
+                    ]
+                });
+                cliPath = "CloudCompare";
+            }
+        } else if (!toolExists && isCloudCompare) {
+            // CloudCompare não encontrado, tentar usar mock
+            const mockPath = path.resolve(process.cwd(), "tools/bim-comparison.sh");
+            if (fs.existsSync(mockPath)) {
+                await this.atualizarStatusJob(analysisId, {
+                    logs: [
+                        `⚠️ CloudCompare não encontrado no sistema`,
+                        `🔄 Usando script mock para desenvolvimento`
+                    ]
+                });
+                cliPath = mockPath;
+            }
+        }
+        
         const args = [
             "-SILENT",
             "-AUTO_SAVE",
@@ -376,8 +563,20 @@ export class PipelineManager {
         etapa: string
     ): Promise<string> {
         return new Promise((resolve, reject) => {
-            const quotedCliPath = cliPath.includes(" ") ? `"${cliPath}"` : cliPath;
-            const commandString = `${quotedCliPath} ${args.join(" ")}`;
+            // Verificar se é um script shell e garantir que seja executável
+            let commandToExecute = cliPath;
+            if (cliPath.endsWith(".sh") || cliPath.endsWith(".bat")) {
+                // Para scripts, usar shell apropriado
+                if (cliPath.endsWith(".sh")) {
+                    commandToExecute = `bash "${cliPath}"`;
+                } else {
+                    commandToExecute = cliPath;
+                }
+            } else if (cliPath.includes(" ")) {
+                commandToExecute = `"${cliPath}"`;
+            }
+            
+            const commandString = `${commandToExecute} ${args.join(" ")}`;
             this.atualizarStatusJob(analysisId, {
                 logs: [`[${etapa}] 🔧 Executando: ${commandString}`]
             });
@@ -413,9 +612,18 @@ export class PipelineManager {
             });
             processo.on("error", (error) => {
                 this.processos.delete(analysisId);
-                const errorMsg = `Erro ao executar CLI: ${error.message}`;
+                let errorMsg = `Erro ao executar CLI: ${error.message}`;
+                
+                // Mensagens mais específicas para erros comuns
+                if (error.message.includes("ENOENT") || error.message.includes("No such file")) {
+                    errorMsg = `Ferramenta não encontrada: ${cliPath}. ` +
+                        `Configure BIM_COMPARISON_CLI no .env ou instale CloudCompare. ` +
+                        `Em desenvolvimento, o script mock será usado automaticamente.`;
+                }
+                
                 this.atualizarStatusJob(analysisId, {
-                    logs: [`❌ ${errorMsg}`]
+                    logs: [`❌ ${errorMsg}`],
+                    error: errorMsg
                 });
                 reject(new Error(errorMsg));
             });

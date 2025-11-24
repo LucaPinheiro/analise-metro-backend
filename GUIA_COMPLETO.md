@@ -25,6 +25,7 @@ Este é um backend para gerenciamento de pipeline de processamento de imagens e 
 
 - ✅ Upload de modelos BIM (.ifc, .dwg, .obj, .ply)
 - ✅ Upload de fotos de canteiro de obras
+- ✅ **Importação de arquivos PLY já processados** (novo)
 - ✅ Processamento automático de reconstrução 3D (3DGS)
 - ✅ Comparação Cloud-to-Cloud (C2C) entre BIM e reconstrução
 - ✅ Monitoramento de progresso em tempo real
@@ -442,6 +443,64 @@ curl -X POST http://localhost:3000/api/projects \
 
 **Esperado:** `400 Bad Request` - "Tipo de arquivo BIM não suportado"
 
+### Testes com Arquivos PLY Existentes
+
+Se você já tem arquivos PLY processados (ex: `3dgs.ply`, `cuboParc.ply`), pode importá-los diretamente:
+
+#### Importar PLY como Registro
+
+```bash
+# Coloque seus arquivos PLY em test-files/ ou na raiz
+curl -X POST http://localhost:3000/api/2/records/import-ply \
+  -F "name=Registro 3DGS" \
+  -F "plyFile=@./test-files/3dgs.ply"
+```
+
+**Resposta esperada:**
+```json
+{
+  "id": 1,
+  "name": "Registro 3DGS",
+  "projectId": 2,
+  "recordPath": "2/registros/1/reconstrucao_1.ply",
+  "message": "Arquivo PLY importado com sucesso. Use analysis-full para comparar com BIM."
+}
+```
+
+#### Executar Análise com PLY Importado
+
+```bash
+# Usar registro específico
+curl -X POST http://localhost:3000/api/2/analysis-full \
+  -H "Content-Type: application/json" \
+  -d '{"recordId": 1}'
+
+# Ou deixar o sistema buscar o mais recente automaticamente
+curl -X POST http://localhost:3000/api/2/analysis-full \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+#### Script de Teste Completo
+
+Use o script `test-complete.sh` para testar todo o fluxo:
+
+```bash
+# Certifique-se de que os arquivos PLY estão disponíveis
+# Em test-files/ ou na raiz do projeto
+./test-complete.sh
+```
+
+Este script testa:
+1. Health check
+2. Criação de projeto
+3. Importação de PLY (3dgs.ply)
+4. Importação de segundo PLY (cuboParc.ply)
+5. Listagem de registros
+6. Início de análise C2C
+7. Verificação de status
+8. Listagem de análises
+
 ### Testes com Fotos (Requer Fotos Reais)
 
 Para testar upload de fotos e processamento, você precisa de fotos reais (JPG/PNG).
@@ -561,6 +620,41 @@ Body:
 ```
 GET /api/projects/:id/records
 ```
+
+#### Importar PLY Existente
+```
+POST /api/:constructionId/records/import-ply
+Content-Type: multipart/form-data
+Body:
+  - name: string (obrigatório)
+  - plyFile: file (obrigatório, .ply)
+```
+
+**Descrição:** Importa um arquivo PLY já processado como registro, sem executar 3DGS. Útil quando você já tem uma reconstrução 3D pronta.
+
+**Exemplo:**
+```bash
+curl -X POST http://localhost:3000/api/2/records/import-ply \
+  -F "name=Registro 3DGS Importado" \
+  -F "plyFile=@./test-files/3dgs.ply"
+```
+
+**Resposta:**
+```json
+{
+  "id": 1,
+  "name": "Registro 3DGS Importado",
+  "projectId": 2,
+  "recordPath": "2/registros/1/reconstrucao_1.ply",
+  "message": "Arquivo PLY importado com sucesso. Use analysis-full para comparar com BIM.",
+  "filePath": "2/registros/1/reconstrucao_1.ply"
+}
+```
+
+**Validações:**
+- Arquivo deve ser `.ply`
+- Tamanho mínimo: 1KB
+- Tamanho máximo: 10GB
 
 ### Processamento Completo
 

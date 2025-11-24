@@ -6,8 +6,10 @@ import fs from "fs";
 import moverArquivo from "@functions/moverArquivo";
 import {
     validarArquivosImagem,
-    obterCaminhoRegistros
+    obterCaminhoRegistros,
+    validarArquivoPLY
 } from "@functions/validarArquivo";
+import { criarDiretorioOutput, obterCaminhoRelativoOutput } from "@functions/moverArquivo";
 import { IProcessamentoParams } from "@interfaces/IProcessamentoParams";
 
 export class ConstructionController {
@@ -125,7 +127,11 @@ export class ConstructionController {
             });
         } catch (error) {
             console.error("Erro ao processar fotos:", error);
-            res.status(500).json({ error: "Erro interno do servidor" });
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            res.status(500).json({ 
+                error: "Erro interno do servidor",
+                details: process.env.NODE_ENV === "development" ? errorMessage : undefined
+            });
         }
     }
 
@@ -206,7 +212,11 @@ export class ConstructionController {
             });
         } catch (error) {
             console.error("Erro ao iniciar análise:", error);
-            res.status(500).json({ error: "Erro interno do servidor" });
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            res.status(500).json({ 
+                error: "Erro interno do servidor",
+                details: process.env.NODE_ENV === "development" ? errorMessage : undefined
+            });
         }
     }
 
@@ -292,7 +302,11 @@ export class ConstructionController {
             res.sendFile(path.resolve(filePath));
         } catch (error) {
             console.error("Erro ao buscar arquivo:", error);
-            res.status(500).json({ error: "Erro interno do servidor" });
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            res.status(500).json({ 
+                error: "Erro interno do servidor",
+                details: process.env.NODE_ENV === "development" ? errorMessage : undefined
+            });
         }
     }
 
@@ -324,7 +338,99 @@ export class ConstructionController {
 
             res.json({ analyses });
         } catch (error) {
-            res.status(500).json({ error: "Erro interno do servidor" });
+            console.error("Erro ao listar análises:", error);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            res.status(500).json({ 
+                error: "Erro interno do servidor",
+                details: process.env.NODE_ENV === "development" ? errorMessage : undefined
+            });
+        }
+    }
+
+    /**
+     * POST /api/:constructionId/records/import-ply
+     * Importa arquivo PLY existente como registro (sem processamento 3DGS)
+     */
+    async importPLY(req: Request, res: Response): Promise<void> {
+        try {
+            const { constructionId } = req.params;
+            const { name } = req.body;
+            const file = req.file as Express.Multer.File;
+
+            // Validações
+            if (!file) {
+                res.status(400).json({
+                    error: 'Nenhum arquivo PLY enviado.'
+                });
+                return;
+            }
+
+            const validacao = validarArquivoPLY(file);
+            if (!validacao.valido) {
+                res.status(400).json({ error: validacao.erro });
+                return;
+            }
+
+            if (!name) {
+                res.status(400).json({
+                    error: 'O campo "name" é obrigatório.'
+                });
+                return;
+            }
+
+            const projectId = parseInt(constructionId);
+            const project = await prisma.project.findUnique({
+                where: { id: projectId }
+            });
+
+            if (!project) {
+                res.status(404).json({ error: "Projeto não encontrado" });
+                return;
+            }
+
+            // Criar registro
+            const registro = await prisma.record.create({
+                data: {
+                    name: name,
+                    projectId: projectId
+                }
+            });
+
+            // Criar diretório de output para registros
+            const outputDir = criarDiretorioOutput(projectId, "registros");
+            const registroDir = path.join(outputDir, registro.id.toString());
+            
+            if (!fs.existsSync(registroDir)) {
+                fs.mkdirSync(registroDir, { recursive: true });
+            }
+
+            // Mover arquivo PLY para estrutura de output
+            const nomeArquivo = `reconstrucao_${registro.id}.ply`;
+            const caminhoFinal = path.join(registroDir, nomeArquivo);
+            fs.renameSync(file.path, caminhoFinal);
+
+            // Obter caminho relativo para salvar no banco
+            const caminhoRelativo = obterCaminhoRelativoOutput(caminhoFinal);
+
+            // Atualizar registro com caminho do PLY
+            const registroAtualizado = await prisma.record.update({
+                where: { id: registro.id },
+                data: {
+                    recordPath: caminhoRelativo
+                }
+            });
+
+            res.status(201).json({
+                ...registroAtualizado,
+                message: "Arquivo PLY importado com sucesso. Use analysis-full para comparar com BIM.",
+                filePath: caminhoRelativo
+            });
+        } catch (error) {
+            console.error("Erro ao importar PLY:", error);
+            res.status(500).json({ 
+                error: "Erro interno do servidor",
+                details: error instanceof Error ? error.message : String(error)
+            });
         }
     }
 }
