@@ -2,13 +2,13 @@ import { ChildProcess, spawn } from "child_process";
 import path from "path";
 import fs from "fs";
 import os from "os";
-import prisma from "@database/db";
-import { IProcessamentoParams } from "@interfaces/IProcessamentoParams";
+import prisma from "../../shared/database/db";
+import { IProcessamentoParams } from "../../shared/interfaces/IProcessamentoParams";
 import { Analysis, Project, Record } from "@prisma/client";
 import {
     criarDiretorioOutput,
     obterCaminhoRelativoOutput
-} from "@functions/moverArquivo";
+} from "../../shared/functions/moverArquivo";
 
 export class PipelineManager {
     private processos: Map<number, ChildProcess> = new Map();
@@ -114,7 +114,7 @@ export class PipelineManager {
             });
 
             // Usar nova estrutura de diretórios
-            const registrosDir = criarDiretorioOutput(project.id, "registros");
+            criarDiretorioOutput(project.id, "registros");
             const analisesDir = criarDiretorioOutput(project.id, "analises");
             const jobOutputDir = path.join(analisesDir, `analysis_${analysisId}`);
             if (!fs.existsSync(jobOutputDir)) {
@@ -173,9 +173,9 @@ export class PipelineManager {
     ): Promise<void> {
         const uploadDir = process.env.UPLOADS_DIR || "./shared/data/uploads";
         const bimPath = path.resolve(uploadDir, project.bimPath);
-        let modelo3dGerado: string;
+        let modelo3dGerado: string | undefined;
         let modelo3dPath: string;
-        let recordPathRelativo: string;
+        let recordPathRelativo: string | undefined;
 
         // Verificar se já existe reconstrução 3DGS
         if (pular3DGS && record.recordPath) {
@@ -271,6 +271,10 @@ export class PipelineManager {
                 progress: 50,
                 outputPaths: { modelo3d: recordPathRelativo }
             });
+        }
+
+        if (!modelo3dGerado || !recordPathRelativo) {
+            throw new Error("Reconstrução 3D indisponível para comparação C2C");
         }
 
         // ====================================================================
@@ -572,7 +576,6 @@ export class PipelineManager {
         etapa: string
     ): Promise<string> {
         return new Promise((resolve, reject) => {
-            const isWindows = os.platform() === "win32";
             let spawnCommand: string;
             let spawnArgs: string[] = [];
             

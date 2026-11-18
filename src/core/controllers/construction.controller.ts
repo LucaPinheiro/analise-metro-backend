@@ -1,16 +1,16 @@
 import { Request, Response } from "express";
-import { PipelineManager } from "@services/pipeline.manager";
-import prisma from "@database/db";
+import { PipelineManager } from "../services/pipeline.manager";
+import prisma from "../../shared/database/db";
 import path from "path";
 import fs from "fs";
-import moverArquivo from "@functions/moverArquivo";
+import moverArquivo from "../../shared/functions/moverArquivo";
 import {
     validarArquivosImagem,
     obterCaminhoRegistros,
     validarArquivoPLY
-} from "@functions/validarArquivo";
-import { criarDiretorioOutput, obterCaminhoRelativoOutput } from "@functions/moverArquivo";
-import { IProcessamentoParams } from "@interfaces/IProcessamentoParams";
+} from "../../shared/functions/validarArquivo";
+import { criarDiretorioOutput, obterCaminhoRelativoOutput } from "../../shared/functions/moverArquivo";
+import { IProcessamentoParams } from "../../shared/interfaces/IProcessamentoParams";
 
 export class ConstructionController {
     private pipelineManager: PipelineManager;
@@ -25,7 +25,7 @@ export class ConstructionController {
      */
     async criarConstruction(req: Request, res: Response): Promise<void> {
         // Redireciona para ProjectController
-        const projectController = await import("@controllers/project.controller");
+        const projectController = await import("./project.controller");
         const controller = new projectController.ProjectController();
         await controller.criarProjeto(req, res);
     }
@@ -34,7 +34,7 @@ export class ConstructionController {
      * POST /api/:constructionId/photo-processing-full
      * Upload de fotos + processamento automático completo (3DGS + C2C)
      */
-    async photoProcessingFull(req: Request, res: Response): Promise<void> {
+    async photoProcessingFull(req: Request<{ constructionId: string }>, res: Response): Promise<void> {
         try {
             const { constructionId } = req.params;
             const { name, parametros } = req.body;
@@ -139,10 +139,10 @@ export class ConstructionController {
      * POST /api/:constructionId/analysis-full
      * Análise usando modelos já armazenados (apenas C2C)
      */
-    async analysisFull(req: Request, res: Response): Promise<void> {
+    async analysisFull(req: Request<{ constructionId: string }>, res: Response): Promise<void> {
         try {
             const { constructionId } = req.params;
-            const { recordId, parametros } = req.body;
+            const { recordId } = req.body;
 
             const projectId = parseInt(constructionId);
             const project = await prisma.project.findUnique({
@@ -224,7 +224,7 @@ export class ConstructionController {
      * GET /api/:constructionId/:fileType/:fileId
      * Retorna arquivo para visualização (Three.js)
      */
-    async getFile(req: Request, res: Response): Promise<void> {
+    async getFile(req: Request<{ constructionId: string; fileType: string; fileId: string }>, res: Response): Promise<void> {
         try {
             const { constructionId, fileType, fileId } = req.params;
             const projectId = parseInt(constructionId);
@@ -315,7 +315,7 @@ export class ConstructionController {
      * Alias para listar projetos
      */
     async listarConstructions(_req: Request, res: Response): Promise<void> {
-        const projectController = await import("@controllers/project.controller");
+        const projectController = await import("./project.controller");
         const controller = new projectController.ProjectController();
         await controller.listarProjetos(_req, res);
     }
@@ -325,7 +325,7 @@ export class ConstructionController {
      * Lista análises filtradas por projeto
      */
     async listarAnalysesPorProjeto(
-        req: Request,
+        req: Request<{ constructionId: string }>,
         res: Response
     ): Promise<void> {
         try {
@@ -351,7 +351,7 @@ export class ConstructionController {
      * POST /api/:constructionId/records/import-ply
      * Importa arquivo PLY existente como registro (sem processamento 3DGS)
      */
-    async importPLY(req: Request, res: Response): Promise<void> {
+    async importPLY(req: Request<{ constructionId: string }>, res: Response): Promise<void> {
         try {
             const { constructionId } = req.params;
             const { name } = req.body;

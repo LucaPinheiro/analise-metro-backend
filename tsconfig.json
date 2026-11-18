@@ -19,17 +19,7 @@
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         "noImplicitReturns": true,
-        "noFallthroughCasesInSwitch": true,
-        "paths": {
-            "@routes/*": ["./src/core/routes/*"],
-            "@functions/*": ["./src/shared/functions/*"],
-            "@interfaces/*": ["./src/shared/interfaces/*"],
-            "@types/*": ["./src/shared/types/*"],
-            "@services/*": ["./src/core/services/*"],
-            "@controllers/*": ["./src/core/controllers/*"],
-            "@database/*": ["./src/shared/database/*"],
-            "@data/*": ["./src/shared/data/*"]
-        }
+        "noFallthroughCasesInSwitch": true
     },
     "include": ["src/**/*"],
     "exclude": ["node_modules", "dist"]

@@ -1,12 +1,12 @@
-import express from "express";
+import express, { Express } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { pipelineRouter } from "@routes/pipeline.routes";
+import { pipelineRouter } from "./core/routes/pipeline.routes";
 
 // Carregar variáveis de ambiente
 dotenv.config();
 
-const app = express();
+const app: Express = express();
 const PORT = process.env.PORT || 3000;
 
 // Middlewares

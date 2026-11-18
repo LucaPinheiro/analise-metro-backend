@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
-import prisma from "@database/db";
+import prisma from "../../shared/database/db";
 import path from "path";
-import moverArquivo from "@functions/moverArquivo";
-import { validarArquivosImagem } from "@functions/validarArquivo";
+import moverArquivo from "../../shared/functions/moverArquivo";
+import { validarArquivosImagem } from "../../shared/functions/validarArquivo";
 
 export class RecordController {
-    async adicionarRegistro(req: Request, res: Response): Promise<void> {
+    async adicionarRegistro(req: Request<{ id: string }>, res: Response): Promise<void> {
         try {
             const { id: projectId } = req.params;
             const { name } = req.body;
@@ -68,7 +68,7 @@ export class RecordController {
         }
     }
 
-    async listarRegistros(req: Request, res: Response): Promise<void> {
+    async listarRegistros(req: Request<{ id: string }>, res: Response): Promise<void> {
         try {
             const { id: projectId } = req.params;
             const registros = await prisma.record.findMany({

@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { PipelineManager } from "@services/pipeline.manager";
-import prisma from "@database/db";
+import { PipelineManager } from "../services/pipeline.manager";
+import prisma from "../../shared/database/db";
 
 export class AnalysisController {
     private pipelineManager: PipelineManager;
@@ -49,7 +49,7 @@ export class AnalysisController {
         }
     }
 
-    async getAnalysisStatus(req: Request, res: Response): Promise<void> {
+    async getAnalysisStatus(req: Request<{ id: string }>, res: Response): Promise<void> {
         try {
             const { id } = req.params;
             const status = await this.pipelineManager.getAnalysisStatus(
@@ -74,7 +74,7 @@ export class AnalysisController {
         }
     }
 
-    async cancelarAnalysis(req: Request, res: Response): Promise<void> {
+    async cancelarAnalysis(req: Request<{ id: string }>, res: Response): Promise<void> {
         try {
             const { id } = req.params;
             const sucesso = await this.pipelineManager.cancelarAnalysis(
@@ -96,7 +96,7 @@ export class AnalysisController {
      * GET /api/analyses/:id/report
      * Gera relatório detalhado da execução da pipeline
      */
-    async getExecutionReport(req: Request, res: Response): Promise<void> {
+    async getExecutionReport(req: Request<{ id: string }>, res: Response): Promise<void> {
         try {
             const { id } = req.params;
             const analysisId = parseInt(id);

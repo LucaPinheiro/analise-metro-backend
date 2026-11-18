@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
-import prisma from "@database/db";
+import prisma from "../../shared/database/db";
 import { Prisma } from "@prisma/client";
 import path from "path";
 import fs from "fs";
-import moverArquivo from "@functions/moverArquivo";
-import { validarArquivoBIM } from "@functions/validarArquivo";
+import moverArquivo from "../../shared/functions/moverArquivo";
+import { validarArquivoBIM } from "../../shared/functions/validarArquivo";
 
 export class ProjectController {
     async criarProjeto(req: Request, res: Response): Promise<void> {
@@ -86,7 +86,7 @@ export class ProjectController {
         }
     }
 
-    async getProjeto(req: Request, res: Response): Promise<void> {
+    async getProjeto(req: Request<{ id: string }>, res: Response): Promise<void> {
         try {
             const { id } = req.params;
             const projeto = await prisma.project.findUnique({
@@ -108,7 +108,7 @@ export class ProjectController {
         }
     }
 
-    async deletarProjeto(req: Request, res: Response): Promise<void> {
+    async deletarProjeto(req: Request<{ id: string }>, res: Response): Promise<void> {
         try {
             const { id } = req.params;
             const projectId = parseInt(id);

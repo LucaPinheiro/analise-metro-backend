@@ -1,14 +1,14 @@
 import { Router } from "express";
-import { ProjectController } from "@controllers/project.controller";
-import { RecordController } from "@controllers/record.controller";
-import { AnalysisController } from "@controllers/analysis.controller";
-import { ConstructionController } from "@controllers/construction.controller";
+import { ProjectController } from "../controllers/project.controller";
+import { RecordController } from "../controllers/record.controller";
+import { AnalysisController } from "../controllers/analysis.controller";
+import { ConstructionController } from "../controllers/construction.controller";
 
 import multer from "multer";
 import path from "path";
 import fs from "fs";
 
-const router = Router();
+const router: Router = Router();
 
 const projectController = new ProjectController();
 const recordController = new RecordController();
